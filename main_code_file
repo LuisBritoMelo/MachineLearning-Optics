@@ -1,0 +1,105 @@
+#Brief description: 
+    
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+import scipy.stats.stats as st
+
+#import the library testset
+filenumber = 20
+working_col_index = 1
+dataset_test = pd.read_table( 'File1.txt', sep="\t", header = None, skiprows=62) #file1 is H2O
+X3 = dataset_test.iloc[:,[5,7,9]].values
+y3 = np.zeros(len(X3))
+for j in range(1,filenumber):
+    filename = "File" + str(j+1) + ".txt"
+    dataset_test = pd.read_table( filename, sep="\t", header = None, skiprows=62)
+    X4 = dataset_test.iloc[:,[5,7,9]].values
+    y4 = np.ones(len(X4))
+    X = np.append(X3,X4,axis = 0)
+    if(j/2 % 1 != 0):
+        y4 = np.ones(len(X4))
+        y = np.append(y3,y4, axis = 0)
+    else:
+        y4 = np.zeros(len(X4))
+        y = np.append(y3,y4, axis = 0)
+    X3 = X
+    y3 = y
+    
+# Regression
+#splitting the dataset into the training set and the test set
+X_train = X[[range(1197)][:]]
+y_train = y[[range(1197)][:]]
+X_test = X[[range(1197,len(X))][:]]
+y_test =y[[range(1197,len(y))][:]]
+                                 
+#from all the wavelength vectors, select 1 vector to apply the analysis
+X_train = np.reshape(X_train[:,working_col_index],(len(X_train),1))
+X_test = np.reshape(X_test[:,working_col_index],(len(X_test),1))
+
+#fitting the classifier
+from sklearn.linear_model import LinearRegression
+regressor = LinearRegression()
+regressor.fit(X_train, y_train)
+
+#predicting the test set results
+y_pred = regressor.predict(X_test)
+
+#Results of r2
+r_squared_train = regressor.score(X_train,y_train)
+r_squared_test = regressor.score(X_test,y_test)
+
+
+# Classification
+#splitting the dataset into the training set and the test set for the classifier
+from sklearn.cross_validation import train_test_split
+X_train_clas, X_test_clas, y_train_clas, y_test_clas = train_test_split(X, y, test_size = 0.25, random_state = 0)
+
+#from all the wavelength vectors, select 1 vector to apply the analysis
+X_train_clas = np.reshape(X_train_clas[:,working_col_index],(len(X_train_clas),1))
+X_test_clas = np.reshape(X_test_clas[:,working_col_index],(len(X_test_clas),1))
+
+#fitting the classifier
+from sklearn.neighbors import KNeighborsClassifier
+classifier = KNeighborsClassifier(n_neighbors=5, p=2, metric='minkowski')
+classifier.fit(X_train_clas,y_train_clas)
+
+#predicting the test set results
+y_pred_classifier = classifier.predict(X_test_clas)
+
+#confusion matrix
+from sklearn.metrics import confusion_matrix
+cm = confusion_matrix(y_test_clas,y_pred_classifier)
+
+#Plot all the results
+#experimental data
+step = (len(X)-1)/2
+time = np.linspace(0,step,len(X))
+time_min = time/60
+plt.plot(time_min,X[:,working_col_index])
+plt.tick_params(axis='both', which='major', labelsize=14)
+plt.xlabel('time (min)', fontsize = 16)
+plt.ylabel('Wavelength (nm)', fontsize = 16)
+plt.show()
+#regressor
+plt.plot(X_train,regressor.predict(X_train),'bo', markersize= 10, label='Train data')
+plt.plot(X_test,y_pred,'r.', markersize= 5, label='Test data')
+plt.tick_params(axis='both', which='major', labelsize=14)
+plt.xlabel('Wavelength (nm)', fontsize = 16)
+plt.ylabel('Predictions',fontsize = 16)
+legend = plt.legend(loc='upper right')
+plt.show()
+#classifier
+plt.plot(X_train_clas,classifier.predict(X_train_clas),'bo', markersize= 10, label='Train data')
+plt.plot (X_test_clas,y_pred_classifier,'r.', markersize= 5, label = 'Test data')
+plt.tick_params(axis='both', which='major', labelsize=14)
+plt.xlabel('Wavelength (nm)', fontsize = 16)
+plt.ylabel('Predictions',fontsize = 16)
+legend = plt.legend(loc='upper right')
+plt.show()
+
+
+#Print of the final results
+print('The adjusted rsqare for the train set is: ', r_squared_train, 'and for test is: ', r_squared_test)
+print('The confusion matrix is \n',cm)
+print(st.skew(X[:,1], axis = 0))
